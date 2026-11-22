@@ -1,0 +1,77 @@
+{
+  "manifest_version": 3,
+  "name": "Doddy Download Manager",
+  "version": "0.2.0",
+  "description": "Sends downloads, video streams and links from Chrome to the Doddy download manager for Mac.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu9t9uwN22YqUVb8YdGN1ptOL05dzH1MVG6mEGBVBxjjUYQwUAPuQUgVksdAOUhxd46VefIkoV9YbhZtrtI0TKjRZqfJKbfXSrZiDcejvJmp7xKYDEb0hbKnsjqlu7fRAdGynCr0FZeKPXUmyFnOjk76bqXTpUz8wrZ28YPZ3bJKZ5vitDk4hgkxLgrxxD0o703crNgwuYR/ssHWmcG1brD8DL5sVxqjfj6cPtmGVbmecJ0hCtCjFKGPEZCd5V5qTK8XqOXaq9wLHoM0+4kpeNusZj/e5v1VrpW3xGfXDZxOrYEW9/sRLiXxKzK8MvaZrwveZPlJigXCGLTbt2Rlt4QIDAQAB",
+  "permissions": [
+    "webRequest",
+    "nativeMessaging",
+    "cookies",
+    "tabs",
+    "storage",
+    "downloads",
+    "alarms",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "hook.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "relay.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js",
+        "grab.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_title": "Doddy",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

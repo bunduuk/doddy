@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Doddy link grabber</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px -apple-system, system-ui, sans-serif; color: #eef0fb; background: #0f1226; }
+  header { padding: 16px 20px; border-bottom: 1px solid #232850; display: flex; gap: 12px; align-items: center; position: sticky; top: 0; background: #0f1226; z-index: 2; }
+  header img { width: 30px; height: 30px; border-radius: 8px; }
+  header h1 { font-size: 16px; margin: 0; }
+  header small { color: #8c93c4; display: block; max-width: 520px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar { padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 1px solid #232850; position: sticky; top: 63px; background: #0f1226; z-index: 2; }
+  .chip { padding: 5px 11px; border-radius: 999px; background: #232850; cursor: pointer; user-select: none; }
+  .chip.on { background: linear-gradient(135deg,#f5894c,#db5c8f 55%,#a843bd); color: #fff; }
+  input[type=search] { background: #1a1e3f; border: 1px solid #2a2f5e; border-radius: 8px; padding: 6px 10px; color: inherit; width: 220px; }
+  button { background: linear-gradient(135deg,#f5894c,#db5c8f 55%,#a843bd); color: #fff; border: 0; border-radius: 999px; padding: 7px 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  button.alt { background: #2a2f5e; font-weight: 500; }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 10px; align-items: center; padding: 8px 20px; border-bottom: 1px solid #171b3a; }
+  .row:hover { background: #171b3a; }
+  .row .t { flex: 1; min-width: 0; }
+  .row b { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row small { color: #8c93c4; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tag { font-size: 11px; color: #a4a4b0; background: #232850; padding: 2px 8px; border-radius: 6px; }
+  #empty { padding: 40px; text-align: center; color: #8c93c4; }
+  #msg { margin-left: auto; color: #f5a56b; }
+</style>
+<header><img src="icons/icon48.png" alt=""><div><h1>Doddy link grabber</h1><small id="page"></small></div></header>
+<div class="bar">
+  <span id="chips"></span>
+  <input id="q" type="search" placeholder="Filter by name">
+  <button class="alt" id="all">Select all shown</button>
+  <button class="alt" id="none">Select none</button>
+  <button id="go" disabled>Download selected</button>
+  <span id="msg"></span>
+</div>
+<div id="list"></div>
+<div id="empty" hidden>Nothing found with these filters.</div>
+<script src="grabber.js"></script>

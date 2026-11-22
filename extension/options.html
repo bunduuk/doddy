@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Doddy options</title>
+<style>
+  body { font: 14px -apple-system, system-ui, sans-serif; max-width: 520px; margin: 40px auto; padding: 0 16px; color: #e9ebfa; background: #0f1226; }
+  label { display: flex; gap: 10px; align-items: flex-start; }
+  small { color: #9aa1cf; display: block; margin-top: 4px; }
+  #saved { color: #f5894c; margin-top: 14px; min-height: 1em; }
+  input[type=text], input[type=number] { background:#1a1e3f; color:#e9ebfa; border:1px solid #2f3566; border-radius:8px; padding:6px 9px; font:inherit; }
+  input[type=checkbox] { accent-color:#db5c8f; }
+  h2 { background: linear-gradient(135deg,#f5894c,#db5c8f,#a843bd); -webkit-background-clip:text; color:transparent; }
+</style>
+<h2>Doddy options</h2>
+<label>
+  <input type="checkbox" id="autoPlay">
+  <span>Start the video automatically when nothing has been detected yet
+    <small>On some sites the player only requests the video once you press play. With this on, Doddy plays it muted for a few seconds, grabs the address, then pauses it again. Off by default because a few sites react badly (ads, autoplay blocks).</small>
+  </span>
+</label>
+<hr style="margin:26px 0;border:0;border-top:1px solid #2a2f5e">
+<label>
+  <input type="checkbox" id="takeover">
+  <span>Let Doddy take over Chrome’s normal file downloads
+    <small>When you click a download link for a big file (zip, video, installer…), Chrome’s copy is stopped and Doddy downloads it in pieces, faster. If Doddy is not available, Chrome carries on by itself. Off by default.</small>
+  </span>
+</label>
+<p><label style="display:block">Only files bigger than (MB)<br><input type="number" id="takeoverMinMB" min="0" style="width:90px"></label></p>
+<p><label style="display:block">File types<br><input type="text" id="takeoverExts" style="width:100%"></label></p>
+<p><label style="display:block">Never take over these sites (comma-separated)<br><input type="text" id="takeoverExclude" placeholder="example.com, mybank.co.uk" style="width:100%"></label></p>
+<div id="saved"></div>
+<script src="options.js"></script>

@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+._*
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+DerivedData/
+build/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+
+# Never commit private keys or signing files
+*.pem
+*.p12
+*.cer
+*.mobileprovision
+.env
