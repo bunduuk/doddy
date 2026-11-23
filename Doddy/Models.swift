@@ -178,7 +178,7 @@ final class DownloadItem: ObservableObject, Identifiable {
             let e = URL(string: job.url)?.pathExtension.lowercased() ?? ""
             return media.contains(e) ? "Video file" : "File"
         case "stream": return "Video stream, best quality"
-        default: return "Video, best available quality"
+        default: return "Page, best available quality"
         }
     }
 

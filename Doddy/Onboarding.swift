@@ -75,7 +75,7 @@ struct OnboardingView: View {
                  helperReady ? "Doddy is connected to your browser." : "Not connected. Open Chrome once, then restart Doddy.")
 
             card(extensionSeen, "puzzlepiece.extension", "3. Chrome extension",
-                 extensionSeen ? "Connected. The Download button appears on videos."
+                 extensionSeen ? "Connected. Chrome downloads and video Download buttons now go to Doddy."
                                : "Open chrome://extensions, turn on Developer mode, press Load unpacked and choose the extension folder.") {
                 if !extensionSeen {
                     HStack {

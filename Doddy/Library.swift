@@ -213,9 +213,9 @@ struct StatsView: View {
                 Text("Stats").font(.title2.weight(.semibold))
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                     StatTile(title: "Downloaded this month", value: fmt(monthBytes), symbol: "calendar", color: Theme.blue)
-                    StatTile(title: "Videos this month", value: "\(monthCount)", symbol: "film", color: Theme.cyan)
+                    StatTile(title: "Downloads this month", value: "\(monthCount)", symbol: "arrow.down.circle", color: Theme.cyan)
                     StatTile(title: "Downloaded all time", value: fmt(allBytes), symbol: "internaldrive", color: Theme.violet)
-                    StatTile(title: "Videos in total", value: "\(allCount)", symbol: "checkmark.circle", color: Theme.violet)
+                    StatTile(title: "Downloads in total", value: "\(allCount)", symbol: "checkmark.circle", color: Theme.violet)
                 }
 
                 Text("Top sites").font(.headline)

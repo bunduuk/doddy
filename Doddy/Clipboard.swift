@@ -17,9 +17,13 @@ extension DownloadManager {
         let isMedia = Self.mediaExt.contains(ext)
         let isSite = Self.sites.contains { host == $0 || host.hasSuffix("." + $0) } && u.path.count > 1
         guard isMedia || isSite || anySite else { return nil }
-        let kind = !isMedia ? "page" : (ext == "m3u8" ? "stream" : "file")
+        // A link that ends in a file name (archive.zip, disk.dmg, data.bin…) is a file to download as it is.
+        // Web pages (no extension, or .html/.php…) and the known video sites go to yt-dlp.
+        let pageExt: Set<String> = ["", "html", "htm", "php", "asp", "aspx", "jsp", "cgi", "shtml"]
+        let isFile = !isSite && !pageExt.contains(ext) && ext.count <= 8
+        let kind = ext == "m3u8" ? "stream" : (isMedia || isFile) ? "file" : "page"
         var job = Job(url: s, kind: kind, pageUrl: s, title: nil)
-        if isMedia { job.title = u.deletingPathExtension().lastPathComponent }
+        if kind != "page" { job.title = u.deletingPathExtension().lastPathComponent }
         return job
     }
 
