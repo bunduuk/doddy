@@ -433,7 +433,7 @@ struct SetupView: View {
     @AppStorage("autoRetry") private var autoRetry = 2
     @AppStorage("chromeCookies") private var chromeCookies = false
     @AppStorage("fastYouTube") private var fastYouTube = true
-    @AppStorage("updateRepo") private var updateRepo = ""
+    @AppStorage("updateRepo") private var updateRepo = "bunduuk/doddy"
     @AppStorage("watchClipboard") private var watchClipboard = false
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("sortFolders") private var sortFolders = "none"

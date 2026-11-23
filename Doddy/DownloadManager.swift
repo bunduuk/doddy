@@ -29,6 +29,10 @@ final class DownloadManager: ObservableObject {
             }
         }
         Task { @MainActor [weak self] in self?.loadHistory() }   // after the app has finished launching
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            if let self { Maintenance.autoClean(manager: self) }
+        }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.saveHistory(force: true) }
@@ -253,6 +257,7 @@ final class DownloadManager: ObservableObject {
     }
 
     func clearFinished() {
+        for i in items where i.state == .cancelled || i.state == .failed { i.resume.discard() }   // their unfinished pieces
         items.removeAll { $0.state == .done || $0.state == .cancelled || $0.state == .failed }
     }
 
@@ -293,6 +298,7 @@ final class DownloadManager: ObservableObject {
     private func perform(_ job: Job, _ item: DownloadItem) async throws -> URL {
         let progress: ProgressFn = { p, sp in
             Task { @MainActor in
+                if item.baseProgress < 0 && p >= 0 { item.baseProgress = p }
                 item.progress = p
                 item.speed = sp
                 item.addSample(sp)
@@ -341,6 +347,29 @@ final class DownloadManager: ObservableObject {
         }
     }
 
+    /// Asks for the first byte of a link. Returns a file (or stream) job when the answer is not a web page.
+    private static func fileBehindLink(_ job: Job) async -> Job? {
+        guard let url = URL(string: job.url) else { return nil }
+        var req = URLRequest(url: url, timeoutInterval: 15)
+        job.headerFields.forEach { req.setValue($1, forHTTPHeaderField: $0) }
+        req.setValue("bytes=0-0", forHTTPHeaderField: "Range")
+        guard let (bytes, resp) = try? await URLSession.shared.bytes(for: req) else { return nil }
+        bytes.task.cancel()
+        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
+        let type = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+        if type.isEmpty || type.contains("html") || type.contains("xml") || type.contains("json") { return nil }
+        var j = job
+        j.kind = type.contains("mpegurl") ? "stream" : "file"
+        if j.customName != true {
+            let suggested = Downloaders.fileNameFromDisposition(http.value(forHTTPHeaderField: "Content-Disposition") ?? "")
+            let fromURL = (http.url ?? url).lastPathComponent
+            let name = suggested.isEmpty ? fromURL : suggested
+            if !name.isEmpty && name != "/" { j.title = (name as NSString).deletingPathExtension }
+        }
+        AppLog.write("   the link is a file (\(type.split(separator: ";").first ?? "")), not a page: downloading it directly")
+        return j
+    }
+
     private static func knownYtDlpSite(_ job: Job) -> Bool {
         let h = (URL(string: job.pageUrl ?? job.url)?.host ?? "").lowercased()
         let known = ["youtube.com", "youtu.be", "vimeo.com", "tiktok.com", "instagram.com", "twitter.com",
@@ -350,8 +379,15 @@ final class DownloadManager: ObservableObject {
 
     private func run(_ item: DownloadItem) async {
         defer { pump() }
-        let job = item.effectiveJob
+        var job = item.effectiveJob
         do {
+            // A link from an unknown site may be a plain file (a release download, an installer…). Ask the
+            // server once: if it is not a web page, download it as a file — in pieces, with progress and its real name.
+            if job.kind == "page", (job.candidates ?? []).isEmpty, job.formatHeight == nil, job.audioOnly != true,
+               job.playlist != true, !Self.knownYtDlpSite(job), let f = await Self.fileBehindLink(job) {
+                job = f
+                if job.customName != true, let t = f.title, !t.isEmpty { item.title = t }
+            }
             var out: URL
             // yt-dlp first only for sites it is known to handle. Elsewhere, on "Best available",
             // try what the browser actually saw (stream, then file) and keep yt-dlp as the last resort.
@@ -408,6 +444,9 @@ final class DownloadManager: ObservableObject {
             if job.cleanNames ?? UserDefaults.standard.bool(forKey: "cleanNames") {
                 out = Naming.renameCleaned(out)
                 item.title = out.deletingPathExtension().lastPathComponent
+            }
+            if job.customName != true && job.playlist != true {
+                item.title = out.deletingPathExtension().lastPathComponent   // the real name, not the site it came from
             }
             item.outputURL = out
             item.retries = 0

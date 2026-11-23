@@ -125,7 +125,8 @@ enum DLState: Equatable {
 final class DownloadItem: ObservableObject, Identifiable {
     let id = UUID()
     var job: Job
-    let started = Date()
+    var started = Date()                       // when this run began (reset by start/resume)
+    var baseProgress: Double = -1              // progress when this run began, for the time-left estimate
 
     @Published var title: String
     @Published var state: DLState = .queued
@@ -190,6 +191,8 @@ final class DownloadItem: ObservableObject, Identifiable {
     }
 
     func reset() {
+        started = Date()
+        baseProgress = -1
         state = .running
         history = []
         progress = -1

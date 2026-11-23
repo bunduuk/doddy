@@ -5,7 +5,7 @@ import AppKit
 enum Installer {
     static let extensionID = "lmlggkipmfmhpblpcnkiocnhkadljanb"
     static let hostName = "io.github.bunduuk.doddy.host"
-    static let oldHostNames = ["com.neatmac.host"]   // earlier builds; their manifests are removed
+    static let oldHostNames = ["com.neatmac.host"]   // earlier builds: still answered, so an extension not reloaded keeps working
 
     static let browserDirs = [
         "Google/Chrome", "Google/Chrome Beta", "Chromium",
@@ -47,7 +47,13 @@ enum Installer {
             let dir = appSupportRoot.appendingPathComponent(b).appendingPathComponent("NativeMessagingHosts")
             try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
             let file = dir.appendingPathComponent("\(hostName).json")
-            for old in oldHostNames { try? fm.removeItem(at: dir.appendingPathComponent("\(old).json")) }
+            for old in oldHostNames {
+                var legacy = manifest
+                legacy["name"] = old
+                if let d = try? JSONSerialization.data(withJSONObject: legacy, options: [.prettyPrinted]) {
+                    try? d.write(to: dir.appendingPathComponent("\(old).json"), options: .atomic)
+                }
+            }
             if (try? data.write(to: file, options: .atomic)) != nil { count += 1 }
         }
         return count

@@ -592,6 +592,11 @@ extension Downloaders {
             throw e
         } catch {
             if Task.isCancelled { throw CancellationError() }
+            // Nothing saved at all (it failed before the playlist): do not leave an empty folder behind.
+            if ((try? fm.contentsOfDirectory(atPath: dir.path)) ?? []).isEmpty {
+                try? fm.removeItem(at: dir)
+                box.clear()
+            }
             // The system's TLS stack refused this server (odd certificate or protocol). ffmpeg has its
             // own TLS code and often gets through, so hand over while nothing has been downloaded yet.
             if let u = error as? URLError,

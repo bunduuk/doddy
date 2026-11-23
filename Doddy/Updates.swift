@@ -26,7 +26,7 @@ enum UpdateChecker {
     }
 
     static func check(manual: Bool) async {
-        let repo = (UserDefaults.standard.string(forKey: "updateRepo") ?? "").trimmingCharacters(in: .whitespaces)
+        let repo = (UserDefaults.standard.string(forKey: "updateRepo") ?? "bunduuk/doddy").trimmingCharacters(in: .whitespaces)
         guard !repo.isEmpty, let url = URL(string: "https://api.github.com/repos/\(repo)/releases/latest") else {
             if manual { await show("Updates are not set up", "Type a GitHub repository such as name/doddy in the options first.", nil) }
             return

@@ -20,6 +20,7 @@ struct DoddyApp: App {
             exit(0)
         }
         Installer.registerHost()
+        Installer.prepareExtensionFolder()   // the folder Chrome loads from always holds this version's extension
         Notifier.requestPermission()
         UpdateChecker.checkIfDue()
         DispatchQueue.main.async {

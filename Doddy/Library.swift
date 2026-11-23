@@ -87,7 +87,15 @@ struct Thumb: View {
                 .font(.system(size: 14)).foregroundStyle(.white, Theme.blue)
                 .offset(x: 4, y: 4)
         }
-        .task(id: url) { image = await ThumbCache.image(for: url) }
+        .task(id: url) {
+            // Only videos have a picture worth showing; other files (zip, dmg, pdf…) get their Finder icon.
+            let videoExts: Set<String> = ["mp4", "m4v", "mov", "mkv", "webm", "avi", "flv", "ts", "wmv", "3gp"]
+            if videoExts.contains(url.pathExtension.lowercased()) {
+                image = await ThumbCache.image(for: url)
+            } else if FileManager.default.fileExists(atPath: url.path) {
+                image = NSWorkspace.shared.icon(forFile: url.path)
+            }
+        }
     }
 }
 
@@ -106,6 +114,23 @@ enum Maintenance {
             for case let f as URL in e { total += Int64((try? f.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
         }
         return total
+    }
+
+    /// Hidden folders of downloads abandoned more than a week ago (nothing in the list uses them): removed quietly.
+    @MainActor
+    static func autoClean(manager: DownloadManager) {
+        let week: TimeInterval = 7 * 86_400
+        let old: [URL] = leftovers(manager: manager).map(\.url).filter { u in
+            let name = u.lastPathComponent
+            guard name.hasPrefix(".doddy-") || name.hasPrefix(".neatmac-") else { return false }
+            let d = (try? u.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? Date()
+            return Date().timeIntervalSince(d) > week
+        }
+        guard !old.isEmpty else { return }
+        Task.detached(priority: .background) {
+            for u in old { try? FileManager.default.removeItem(at: u) }
+            AppLog.write("removed \(old.count) unfinished download folder(s) left over for more than a week")
+        }
     }
 
     /// Unfinished pieces that no download in the list is still using.

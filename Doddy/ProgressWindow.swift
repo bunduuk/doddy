@@ -305,10 +305,11 @@ struct ProgressView_: View {
     }
 
     private var eta: String {
-        guard item.state == .running, let p = known, p > 0.03 else { return "—" }
+        guard item.state == .running, phase == nil, let p = known, p > 0.03 else { return "—" }
         let elapsed = Date().timeIntervalSince(item.started)
-        guard elapsed > 3 else { return "—" }
-        let left = elapsed * (1 - p) / p
+        let done = p - max(item.baseProgress, 0)        // what this run downloaded (a resume starts part way)
+        guard elapsed > 3, done > 0.01 else { return "—" }
+        let left = elapsed * (1 - p) / done
         return left < 86_400 ? formatDuration(left) : "—"
     }
 
@@ -321,17 +322,17 @@ struct ProgressView_: View {
                 if Preview.canPreview(item) {
                     Button { onPreview() } label: { Label("Play so far", systemImage: "play.rectangle") }.glassButton()
                 }
-                if item.state == .running && item.canPause {
+                if item.state == .running && item.canPause && phase == nil {
                     Button { onPause() } label: { Label("Pause", systemImage: "pause.fill") }.glassButton()
                 }
                 Button("Cancel") { onCancel() }.glassButton()
             case .paused:
                 Button("Hide") { onClose() }.glassButton()
                 if Preview.canPreview(item) {
-                    Button { onPreview() } label: { Label("Play so far", systemImage: "play.rectangle") }.glassButton()
+                    Button { onPreview() } label: { Image(systemName: "play.rectangle") }.glassButton().help("Play so far")
                 }
                 if item.job.kind != "page" {
-                    Button { onRefresh() } label: { Label("Refresh link", systemImage: "link") }.glassButton()
+                    Button { onRefresh() } label: { Image(systemName: "link") }.glassButton().help("Refresh link: get a new link from the page")
                 }
                 Button { onResume() } label: { Label("Resume", systemImage: "play.fill") }
                     .glassButton(prominent: true).keyboardShortcut(.defaultAction)
@@ -362,7 +363,7 @@ struct ProgressView_: View {
 
     private var headline: String {
         switch item.state {
-        case .queued: return "Waiting for its turn"
+        case .queued: return item.retries > 0 && !item.detail.isEmpty ? "Waiting to try again" : "Waiting for its turn"
         case .pending: return "Needs your OK"
         case .paused: return "Paused"
         case .done: return "Finished"
