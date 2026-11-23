@@ -296,7 +296,7 @@ struct ProgressView_: View {
     private var stats: some View {
         TimelineView(.periodic(from: .now, by: 1)) { _ in
             HStack(spacing: 10) {
-                mini("Speed", item.speed.contains("/s") ? (item.speed.components(separatedBy: " ").first ?? item.speed) : "—",
+                mini("Speed", item.speed.contains("/s") ? (item.speed.components(separatedBy: "·").first ?? item.speed).trimmingCharacters(in: .whitespaces) : "—",
                      "speedometer", Theme.cyan)
                 mini("Time left", eta, "hourglass", Theme.violet)
                 mini("Elapsed", formatDuration(Date().timeIntervalSince(item.started)), "clock", Theme.pink)
