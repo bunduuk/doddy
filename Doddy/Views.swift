@@ -8,6 +8,7 @@ struct ContentView: View {
     @EnvironmentObject var manager: DownloadManager
     @State private var page: Page = .all
     @State private var tick = 0
+    @State private var stateKey = 0
     @State private var query = ""
     @AppStorage("onboardingDone") private var onboardingDone = false
     @State private var showTour = false
@@ -31,6 +32,7 @@ struct ContentView: View {
     }
 
     var body: some View {
+        let _ = tick   // read here so a tick redraws the counts and the list
         NavigationSplitView {
             List(selection: $page) {
                 Section("Library") {
@@ -51,7 +53,14 @@ struct ContentView: View {
                 .overlay(alignment: .top) { GradientLine() }
                 .background(WindowTweaks())
         }
-        .onReceive(timer) { _ in if manager.activeCount > 0 { tick += 1 } }   // idle: no redraw every second
+        .onReceive(timer) { _ in
+            // Redraw every second while downloading; when idle, only when a download's state changed
+            // (the sidebar counts and the list follow the states).
+            var h = Hasher()
+            for i in manager.items { h.combine(i.id); h.combine(i.state.key) }
+            let key = h.finalize()
+            if manager.activeCount > 0 || key != stateKey { stateKey = key; tick += 1 }
+        }
         .onAppear { if !onboardingDone { showTour = true } }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("doddyShowTour"))) { _ in showTour = true }
         .sheet(isPresented: $showTour) {
