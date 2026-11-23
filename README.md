@@ -3,9 +3,12 @@
 <h1 align="center">Doddy</h1>
 <p align="center">A fast, friendly download manager for macOS, with a companion Chrome extension.</p>
 
-<!-- Screenshots: add images to docs/screenshots/ and they will show here.
-<p align="center"><img src="docs/screenshots/main.png" width="720" alt="Doddy main window"></p>
--->
+<p align="center"><img src="docs/screenshots/main.jpg" width="720" alt="Doddy's main window: one download in progress and one finished"></p>
+
+<p align="center">
+  <img src="docs/screenshots/progress.jpg" width="360" alt="A download's progress window with a live speed graph">
+  <img src="docs/screenshots/setup.jpg" width="420" alt="Setup: the browser helper and tools are ready">
+</p>
 
 Doddy takes downloads off your browser's hands and makes them faster and harder to break. Big files are fetched over several connections at once, can be paused and resumed, and survive dropped connections and app restarts. Media streams (HLS) and pages from sites that [yt-dlp](https://github.com/yt-dlp/yt-dlp) supports are handled too.
 
