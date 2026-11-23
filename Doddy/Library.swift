@@ -254,7 +254,7 @@ struct StatsView: View {
                                 HStack {
                                     Text(s.id).fontWeight(.medium)
                                     Spacer()
-                                    Text("\(s.count) video\(s.count == 1 ? "" : "s") · \(fmt(s.bytes))")
+                                    Text("\(s.count) download\(s.count == 1 ? "" : "s") · \(fmt(s.bytes))")
                                         .foregroundStyle(.secondary).monospacedDigit()
                                 }
                                 FunBar(value: Double(s.bytes) / Double(top), colors: [Theme.blue, Theme.violet, Theme.pink], height: 6)

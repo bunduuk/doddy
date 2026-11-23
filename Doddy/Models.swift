@@ -129,7 +129,11 @@ final class DownloadItem: ObservableObject, Identifiable {
     var baseProgress: Double = -1              // progress when this run began, for the time-left estimate
 
     @Published var title: String
-    @Published var state: DLState = .queued
+    @Published var state: DLState = .queued {
+        // Lists, counts and the menu bar read every download's state through the manager:
+        // tell them when one changes (adding or removing a download already does).
+        didSet { if oldValue != state { DownloadManager.shared.objectWillChange.send() } }
+    }
     @Published var hiddenInMenu = false       // cleared from the menu bar list only; it stays in the app
     @Published var progress: Double = -1      // -1 = unknown
     @Published var speed: String = ""

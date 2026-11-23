@@ -137,6 +137,7 @@ struct ContentView: View {
                     SetupView()
                         .frame(width: min(600, max(g.size.width - 48, 320)))
                         .padding(24)
+                        .padding(.bottom, 32)   // room under the last buttons, so they are never cut off
                         .frame(width: g.size.width)
                 }
                 .scrollIndicators(.hidden)

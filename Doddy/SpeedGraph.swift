@@ -9,6 +9,7 @@ private func speedText(_ v: Double) -> String {
 
 struct SpeedGraphView: View {
     let samples: [Double]
+    var live = true     // false while paused: the last speed is history, not "now"
     @State private var hoverX: CGFloat? = nil
     @State private var hoverStamp = 0
 
@@ -127,7 +128,7 @@ struct SpeedGraphView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
 
-                if let now = samples.last, count > 1 {
+                if let now = samples.last, count > 1, live {
                     HStack(alignment: .firstTextBaseline) {
                         Text(speedText(now))
                             .font(.system(size: 22, weight: .bold, design: .rounded)).monospacedDigit()

@@ -544,10 +544,23 @@ enum Downloaders {
             // Segmented download refused (rate limit / 503): one plain connection instead.
             if ranged && !probeFailed {
                 AppLog.write("segmented download failed (\(error.localizedDescription)); retrying on one connection")
+                // Still one ranged piece when the size is known, so Pause/Resume and retries continue
+                // where they stopped instead of starting over (servers that refuse 8 connections, e.g. 429).
+                let resumable = total > 0
+                box.dest = dest
+                box.total = total
+                box.ranged = resumable
+                box.segs = []
                 let one = RangedDownloader(url: url, headers: headers, dest: dest, total: total,
-                                           ranged: false, connections: 1, progress: progress)
-                do { try await one.run() } catch {
+                                           ranged: resumable, connections: 1, progress: progress,
+                                           box: resumable ? box : nil)
+                do { try await one.run() } catch is CancellationError {
+                    throw CancellationError()   // a pause keeps the file and its progress
+                } catch {
+                    if Task.isCancelled { throw CancellationError() }
+                    if resumable && keepsPieces(error) && !box.segs.isEmpty { throw error }
                     try? FileManager.default.removeItem(at: dest)
+                    box.clear()
                     throw error
                 }
             } else {

@@ -114,7 +114,7 @@ enum ErrorReport {
                     "cleanNames", "chromeCookies", "sortFolders", "watchClipboard", "nameTemplate"]
         out += "Settings: " + keys.map { "\($0)=\(d.object(forKey: $0).map { "\($0)" } ?? "default")" }.joined(separator: ", ") + "\n\n"
         out += "Downloads (latest 12):\n"
-        for i in manager.items.suffix(12) {
+        for i in manager.items.prefix(12) {   // newest first
             var h = i.sourceHost
             if h.hasPrefix("www.") { h.removeFirst(4) }
             out += "- \(i.state.key) | \(h) | \(i.job.kind) | \(i.method)"

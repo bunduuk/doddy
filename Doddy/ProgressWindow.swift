@@ -122,7 +122,7 @@ struct ProgressView_: View {
                     note(item.detail, Theme.orange)
                 }
                 if busy {
-                    SpeedGraphView(samples: item.history).frame(height: 130)
+                    SpeedGraphView(samples: item.history, live: item.state == .running).frame(height: 130)
                 }
                 if busy { stats }
                 if item.state == .failed { failure }
