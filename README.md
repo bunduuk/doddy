@@ -46,9 +46,7 @@ Doddy takes downloads off your browser's hands and makes them faster and harder 
 ## Requirements
 
 - macOS 13 Ventura or newer
-- Xcode 26 or newer (the app icon uses Icon Composer)
-- Python 3 (comes with the Xcode command-line tools)
-- Google Chrome or another Chromium browser for the extension
+- Google Chrome or another Chromium browser (Brave, Edge, Vivaldi, Arc) for the extension
 
 Doddy installs its helper tools ([yt-dlp](https://github.com/yt-dlp/yt-dlp), [ffmpeg](https://ffmpeg.org) and [Deno](https://deno.com)) into its own folder on first launch, so Homebrew is not needed.
 
@@ -59,9 +57,14 @@ Doddy installs its helper tools ([yt-dlp](https://github.com/yt-dlp/yt-dlp), [ff
 3. Open Doddy. Because it is not notarised by Apple, macOS blocks it the first time: open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/Doddy.app` in Terminal).
 4. Unzip the extension and load it in Chrome as described in [Install the browser extension](#install-the-browser-extension).
 
-On first launch Doddy downloads its helper tools (yt-dlp, ffmpeg, Deno) into its own folder.
-
 ## Build from source
+
+Only needed if you want to change Doddy or build it yourself; the release above is ready to use.
+
+Requirements to build:
+
+- Xcode 26 or newer (the app icon uses Icon Composer)
+- Python 3, used by the build script to refresh the Xcode project (it comes with Xcode's command-line tools, so there is nothing extra to install)
 
 ```bash
 git clone https://github.com/bunduuk/doddy.git
