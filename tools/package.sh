@@ -22,17 +22,25 @@ rm -rf /Applications/Doddy.app
 cp -R "$APP" /Applications/Doddy.app
 xattr -cr /Applications/Doddy.app
 
-echo "4/5  Making the disk image…"
+VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist" 2>/dev/null || echo "0")
+
+echo "4/5  Making the disk image and the extension zip…"
 rm -rf dist
 mkdir -p dist/dmg
 cp -R "$APP" dist/dmg/Doddy.app
 ln -s /Applications dist/dmg/Applications
-hdiutil create -volname "Doddy" -srcfolder dist/dmg -ov -format UDZO dist/Doddy.dmg >/dev/null
+hdiutil create -volname "Doddy" -srcfolder dist/dmg -ov -format UDZO "dist/Doddy-$VERSION.dmg" >/dev/null
 rm -rf dist/dmg
+# The browser extension, ready for "Load unpacked" after unzipping.
+mkdir -p "dist/ext/Doddy extension"
+cp -R extension/. "dist/ext/Doddy extension/"
+find dist/ext -name ".DS_Store" -delete
+(cd dist/ext && zip -qr "../Doddy-extension-$VERSION.zip" "Doddy extension")
+rm -rf dist/ext
 
 echo "5/5  Opening Doddy…"
 open /Applications/Doddy.app
 echo
-echo "Done. Doddy is in Applications, and the disk image is at:"
-echo "  $PWD/dist/Doddy.dmg"
+echo "Done. Doddy is in Applications. Files to share are in $PWD/dist:"
+ls -1 dist | sed "s/^/  /"
 echo "Next: reload the extension in chrome://extensions (Load unpacked → the 'extension' folder, or use the button in Doddy's Setup)."

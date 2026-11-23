@@ -52,7 +52,16 @@ Doddy takes downloads off your browser's hands and makes them faster and harder 
 
 Doddy installs its helper tools ([yt-dlp](https://github.com/yt-dlp/yt-dlp), [ffmpeg](https://ffmpeg.org) and [Deno](https://deno.com)) into its own folder on first launch, so Homebrew is not needed.
 
-## Build and install
+## Install
+
+1. Download **Doddy-0.2.0.dmg** and **Doddy-extension-0.2.0.zip** from the [latest release](https://github.com/bunduuk/doddy/releases/latest).
+2. Open the disk image and drag **Doddy** into **Applications**.
+3. Open Doddy. Because it is not notarised by Apple, macOS blocks it the first time: open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/Doddy.app` in Terminal).
+4. Unzip the extension and load it in Chrome as described in [Install the browser extension](#install-the-browser-extension).
+
+On first launch Doddy downloads its helper tools (yt-dlp, ffmpeg, Deno) into its own folder.
+
+## Build from source
 
 ```bash
 git clone https://github.com/bunduuk/doddy.git
@@ -62,13 +71,13 @@ cd doddy
 
 `build.sh` generates the Xcode project, builds a Release copy, installs it as `/Applications/Doddy.app` and opens it. To work in Xcode instead, run `python3 tools/genproj.py` once and open `Doddy.xcodeproj`.
 
-`./tools/package.sh` does the same and also makes `dist/Doddy.dmg` to share. Because the app is not notarised, another Mac will block it the first time: right-click the app and choose **Open**, or run `xattr -dr com.apple.quarantine /Applications/Doddy.app`.
+`./tools/package.sh` does the same and also puts a disk image and the extension zip in `dist/`, ready to share. Because the app is not notarised, another Mac will block it the first time: right-click the app and choose **Open**, or run `xattr -dr com.apple.quarantine /Applications/Doddy.app`.
 
 ## Install the browser extension
 
 1. Open Doddy once, so it registers its browser helper.
 2. In Chrome, go to `chrome://extensions` and switch on **Developer mode**.
-3. Click **Load unpacked** and choose the `extension` folder (Doddy's **Setup** page has a button that shows it).
+3. Click **Load unpacked** and choose the unzipped `Doddy extension` folder from the release, or the `extension` folder if you built from source (Doddy's **Setup** page has a button that shows it).
 4. Back in Doddy, the setup tour shows the extension as connected after its first message.
 
 ## How it fits together
