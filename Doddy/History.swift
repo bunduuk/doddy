@@ -54,6 +54,7 @@ extension DownloadItem {
             j.browserHeaders = nil
             j.acceptLanguage = nil
             j.playlistText = nil; j.variantText = nil; j.keyData = nil
+            if state == .done && !AddressText.remember { j = j.forgettingAddresses() }
             j.candidates = j.candidates?.map { c in
                 var c = c
                 c.cookies = nil; c.browserHeaders = nil; c.acceptLanguage = nil

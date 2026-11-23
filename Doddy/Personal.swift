@@ -226,7 +226,7 @@ enum SettingsBackup {
                        "scheduleEnabled", "scheduleMinutes", "afterQueue", "nameTemplate", "subtitlesOn",
                        "subtitleLangs", "translateSubs", "cleanNames", "finishSound", "chromeCookies",
                        "updateRepo", "watchClipboard", "launchAtLogin", "sortFolders", "convertAfter",
-                       "convertDeleteOriginal", "siteRules", "autoRetry", "fastYouTube"]
+                       "convertDeleteOriginal", "siteRules", "autoRetry", "fastYouTube", "rememberAddresses"]
 
     private static func alert(_ title: String, _ text: String) {
         let a = NSAlert()

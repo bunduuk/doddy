@@ -89,6 +89,7 @@ final class ProgressPanelController: NSObject, NSWindowDelegate {
 }
 
 struct ProgressView_: View {
+    @State private var showInfo = false
     @ObservedObject var item: DownloadItem
     var onCancel: () -> Void
     var onPause: () -> Void
@@ -142,6 +143,15 @@ struct ProgressView_: View {
 
     // MARK: sections
 
+    /// Address, referrer and file of this download, IDM-style, with copy buttons.
+    private var infoButton: some View {
+        Button { showInfo = true } label: { Image(systemName: "info.circle").font(.system(size: 14)) }
+            .buttonStyle(.borderless)
+            .help("Address, referrer and file")
+            .popover(isPresented: $showInfo, arrowEdge: .bottom) { DownloadInfo(item: item) }
+    }
+
+
     private var header: some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: Theme.symbol(for: item.state))
@@ -157,6 +167,7 @@ struct ProgressView_: View {
                 HStack(spacing: 6) {
                     Chip(text: item.sourceHost, symbol: "globe", color: Theme.blue)
                     if !item.method.isEmpty { Chip(text: item.method, symbol: "bolt.fill", color: Theme.violet) }
+                    infoButton
                 }
             }
             Spacer(minLength: 0)
@@ -223,6 +234,7 @@ struct ProgressView_: View {
                 HStack(spacing: 6) {
                     Chip(text: item.sourceHost, symbol: "globe", color: Theme.blue)
                     if !item.method.isEmpty { Chip(text: item.method, symbol: "bolt.fill", color: Theme.violet) }
+                    infoButton
                     if let size = fileSize { Chip(text: size, symbol: "internaldrive", color: Theme.violet) }
                 }
             }

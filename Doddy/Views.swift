@@ -19,7 +19,9 @@ struct ContentView: View {
     private func filtered(_ p: Page) -> [DownloadItem] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         let all = base(p)
-        return q.isEmpty ? all : all.filter { $0.title.lowercased().contains(q) || $0.sourceHost.lowercased().contains(q) }
+        return q.isEmpty ? all : all.filter { i in
+            [i.title, i.sourceHost, i.job.url, i.job.referer ?? "", i.job.pageUrl ?? ""].contains { $0.lowercased().contains(q) }
+        }
     }
 
     private func base(_ p: Page) -> [DownloadItem] {
@@ -175,6 +177,7 @@ struct ContentView: View {
 struct DownloadRow: View {
     @ObservedObject var item: DownloadItem
     @EnvironmentObject var manager: DownloadManager
+    @State private var showInfo = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -240,6 +243,9 @@ struct DownloadRow: View {
                             .help("Get a fresh link and continue")
                     }
                 }
+                Button { showInfo = true } label: { Image(systemName: "info.circle") }
+                    .help("Address, referrer and file")
+                    .popover(isPresented: $showInfo, arrowEdge: .bottom) { DownloadInfo(item: item) }
                 Menu {
                     Button("Remove") { manager.remove(item) }
                     if item.state == .done {
@@ -256,6 +262,27 @@ struct DownloadRow: View {
         }
         .padding(12)
         .glassCard(radius: 16, tint: item.state == .failed ? Theme.red : nil)
+        .contextMenu { rowMenu }
+    }
+
+    @ViewBuilder private var rowMenu: some View {
+        Button("Details…") { showInfo = true }
+        Divider()
+        Button("Copy address") { AddressText.copy(item.job.url) }
+        if let r = item.job.referer, !r.isEmpty {
+            Button("Copy referrer") { AddressText.copy(r) }
+        }
+        if let p = item.job.pageUrl ?? item.job.referer, let u = URL(string: p), u.scheme?.hasPrefix("http") == true {
+            Button("Open page in browser") { NSWorkspace.shared.open(u) }
+        }
+        if [.done, .failed, .cancelled].contains(item.state), item.job.addressForgotten != true {
+            Divider()
+            Button("Download again") { manager.downloadAgain(item) }
+        }
+        if item.state == .done {
+            Divider()
+            Button("Show in Finder") { manager.reveal(item) }
+        }
     }
 
     private var subtitle: String {
@@ -430,6 +457,7 @@ struct SetupView: View {
     @AppStorage("subtitleLangs") private var subtitleLangs = "en"
     @AppStorage("translateSubs") private var translateSubs = false
     @AppStorage("cleanNames") private var cleanNames = false
+    @AppStorage("rememberAddresses") private var rememberAddresses = true
     @AppStorage("finishSound") private var finishSound = true
     @AppStorage("autoRetry") private var autoRetry = 2
     @AppStorage("chromeCookies") private var chromeCookies = false
@@ -662,6 +690,9 @@ struct SetupView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Divider()
                 flag("Clean names", "Removes tags like [1080p] and (Official Video).", $cleanNames)
+            }
+            section("History", "clock.arrow.circlepath", Theme.cyan, subtitle: "Where downloads came from") {
+                flag("Remember addresses", "Keeps each finished download's address and referrer, to copy them or download again. Off: they are forgotten when a download finishes.", $rememberAddresses)
             }
             section("Convert", "arrow.triangle.swap", Theme.violet, subtitle: "After downloading") {
                 pick("When finished", $convertAfter, [("Keep original", "none"), ("To MP4", "mp4"), ("To MP3", "mp3"), ("To M4A", "m4a")])

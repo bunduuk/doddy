@@ -100,7 +100,7 @@ final class DownloadManager: ObservableObject {
         return a.runModal() == .alertSecondButtonReturn
     }
 
-    func add(_ incoming: Job) {
+    func add(_ incoming: Job, again: Bool = false) {
         var job = incoming
         if let rid = job.refreshId, let existing = items.first(where: { $0.id.uuidString == rid }) {
             applyRefresh(existing, job)
@@ -108,7 +108,7 @@ final class DownloadManager: ObservableObject {
         }
         if job.resumeKey == nil { job.resumeKey = stableHash(job.url) }
         let rule = SiteRules.apply(to: &job)
-        guard confirmDuplicate(job) else { return }
+        guard again || confirmDuplicate(job) else { return }
         let item = DownloadItem(job: job)
         if let r = rule, !r.folder.isEmpty {
             item.saveDir = URL(fileURLWithPath: r.folder, isDirectory: true)
@@ -122,6 +122,16 @@ final class DownloadManager: ObservableObject {
         } else {
             start(item)
         }
+    }
+
+    /// Starts a finished, failed or stopped download over as a new one, from the same address and referrer.
+    func downloadAgain(_ item: DownloadItem) {
+        guard item.job.addressForgotten != true else { return }
+        var j = item.effectiveJob
+        j.refreshId = nil
+        j.resumeKey = nil
+        j.quiet = nil
+        add(j, again: true)
     }
 
     // MARK: Refresh link (IDM-style)
@@ -458,6 +468,7 @@ final class DownloadManager: ObservableObject {
                 item.title = out.deletingPathExtension().lastPathComponent   // the real name, not the site it came from
             }
             item.outputURL = out
+            if !AddressText.remember { item.job = item.job.forgettingAddresses() }
             item.retries = 0
             item.progress = 1
             item.speed = ""

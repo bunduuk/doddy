@@ -74,6 +74,7 @@ struct Job: Codable {
     var customName: Bool?            // the user typed their own file name
     var mirrors: [String]?           // other addresses of the same file, tried when the first fails
     var quiet: Bool?                 // started from the link grabber: no details window, no duplicate prompt
+    var addressForgotten: Bool?      // finished download whose address and referrer were not kept (Setup → Files)
 
     var headerFields: [String: String] {
         var h: [String: String] = [:]
