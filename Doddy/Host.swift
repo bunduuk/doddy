@@ -316,6 +316,12 @@ enum HostMode {
         guard let id = obj["id"] as? String, let index = obj["index"] as? Int,
               !id.contains("/"), !id.contains("..") else { return ["ok": false, "error": "bad part"] }
         let fm = FileManager.default
+        // Only pieces Doddy is still waiting for are kept. After a cancel, a failure or a timeout the request is
+        // gone; storing late pieces would recreate the folder and leave them on disk for good.
+        let req = Paths.support.appendingPathComponent("wanted", isDirectory: true).appendingPathComponent(id + ".json")
+        guard fm.fileExists(atPath: req.path) || fm.fileExists(atPath: req.appendingPathExtension("claimed").path) else {
+            return ["ok": false, "error": "Doddy no longer needs this download", "stop": true]
+        }
         let dir = Paths.support.appendingPathComponent("parts", isDirectory: true).appendingPathComponent(id, isDirectory: true)
         try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         if let err = obj["error"] as? String {

@@ -18,6 +18,15 @@ final class DownloadManager: ObservableObject {
     init() {
         try? FileManager.default.createDirectory(at: Paths.queue, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: Paths.downloads, withIntermediateDirectories: true)
+        // Nothing is downloading yet: pieces Chrome fetched for an earlier run (Doddy quit or crashed
+        // mid-download) are not needed. A download that resumes asks Chrome again.
+        Task.detached(priority: .utility) {
+            let fm = FileManager.default
+            for sub in ["parts", "wanted"] {
+                let dir = Paths.support.appendingPathComponent(sub, isDirectory: true)
+                for f in (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [] { try? fm.removeItem(at: f) }
+            }
+        }
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.pollQueue()

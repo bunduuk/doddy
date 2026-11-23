@@ -462,7 +462,14 @@ async function serveFile(req) {
   // A whole file behind the user's login (Google Drive and similar): fetched here, with the browser's own
   // cookies, in 8 MB pieces that the app puts back together. If it fails, Chrome downloads it itself.
   const url = req.file.url;
-  const put = (index, extra) => sendToHost({ action: "part", id: req.id, index, ...extra });
+  // Doddy answers "stop" once it no longer wants this file (cancelled, failed, timed out): then nothing more
+  // is fetched, and Chrome must not download it on its own either.
+  let stopped = false;
+  const put = async (index, extra) => {
+    const r = await sendToHost({ action: "part", id: req.id, index, ...extra });
+    if (r && r.stop) stopped = true;
+    return r;
+  };
   const b64 = (buf) => {
     const bytes = new Uint8Array(buf);
     let bin = "";
@@ -489,11 +496,11 @@ async function serveFile(req) {
       await put(-1, { data: btoa(JSON.stringify({ total, chunk: CH, count, name, type })) });
       const queue = Array.from({ length: count }, (_, i) => i);
       const worker = async () => {
-        while (queue.length) {
+        while (queue.length && !stopped) {
           const i = queue.shift();
           const a = i * CH, z = Math.min(total - 1, a + CH - 1);
           let ok = false, err = "";
-          for (let t = 0; t < 3 && !ok; t++) {
+          for (let t = 0; t < 3 && !ok && !stopped; t++) {
             try {
               const r = await fetch(url, { credentials: "include", headers: { Range: `bytes=${a}-${z}` } });
               if (r.status !== 206) { err = "HTTP " + r.status; continue; }
@@ -501,7 +508,7 @@ async function serveFile(req) {
               if (resp && resp.ok) ok = true; else err = (resp && resp.error) || "helper error";
             } catch (e) { err = String(e); }
           }
-          if (!ok) throw new Error(err || "part failed");
+          if (!ok && !stopped) throw new Error(err || "part failed");
         }
       };
       await Promise.all(Array.from({ length: 4 }, worker));
@@ -516,6 +523,7 @@ async function serveFile(req) {
       await put(0, { data: b64(buf) });
     }
   } catch (e) {
+    if (stopped) return;
     await put(0, { error: "Chrome could not fetch it: " + String(e && e.message || e) + ". Chrome is downloading it instead." });
     markOwn(url);
     chrome.downloads.download({ url });
@@ -552,11 +560,12 @@ async function serveParts(req) {
       return last;
     };
     let limited = false;   // the server said "too many requests": stop asking
+    let stopped = false;   // Doddy said it no longer wants these parts
     const worker = async () => {
-      while (queue.length && !limited) {
+      while (queue.length && !limited && !stopped) {
         const p = queue.shift();
         let sent = false, err = "";
-        for (let t = 0; t < 3 && !sent && !limited; t++) {
+        for (let t = 0; t < 3 && !sent && !limited && !stopped; t++) {
           try {
             let data = "";
             const pg = await viaPage(p.url);
@@ -575,10 +584,11 @@ async function serveParts(req) {
               data = btoa(bin);
             }
             const resp = await sendToHost({ action: "part", id: req.id, index: p.i, data });
+            if (resp && resp.stop) { stopped = true; queue.length = 0; break; }   // Doddy no longer wants these parts
             if (resp && resp.ok) sent = true; else err = (resp && resp.error) || "helper error";
           } catch (e) { err = String(e); }
         }
-        if (!sent) await sendToHost({ action: "part", id: req.id, index: p.i, error: err });
+        if (!sent && !stopped) await sendToHost({ action: "part", id: req.id, index: p.i, error: err });
       }
     };
     await withReferer(req.referer, queue.map((p) => p.url).slice(0, 50), () => Promise.all(Array.from({ length: 6 }, worker)), "full", 1, req.acceptLanguage || "");
