@@ -23,8 +23,15 @@ function remember(tabId, item) {
   if (tabId < 0) return;
   if (!found.has(tabId)) found.set(tabId, new Map());
   const m = found.get(tabId);
+  const key = item.url.split("?")[0];
+  // A quality the player loads later keeps the name and size it got from the main playlist (1080p · 5 Mbps…).
+  const old = m.get(key);
+  if (old && old.height && !item.height) {
+    item.height = old.height; item.bandwidth = old.bandwidth; item.label = old.label;
+    item.drm = item.drm || old.drm;
+  }
   // Same file seen again (different token/query): keep only the newest.
-  m.set(item.url.split("?")[0], item);
+  m.set(key, item);
   chrome.action?.setBadgeText?.({ tabId, text: String(m.size) });
 }
 
@@ -62,7 +69,9 @@ chrome.webRequest.onHeadersReceived.addListener(
       const type = get("content-type");
       const len = parseInt(get("content-length") || "0", 10);
       const isPlaylist = /m3u8|mpd/i.test(d.url.split("?")[0]) || /mpegurl|dash\+xml/i.test(type);
-      const looksMedia = MEDIA_TYPE.test(type) || MEDIA_EXT.test(d.url);
+      // The address's own path decides, not its query (a player page can carry "?src=…/video.m3u8").
+      const looksMedia = MEDIA_TYPE.test(type) || MEDIA_EXT.test(d.url.split("?")[0]);
+      if (/^text\/html|^application\/xhtml/i.test(type)) return;   // a web page is never a download
       // skip HLS/DASH segments (.ts/.m4s) and tiny range chunks
       if (!looksMedia) return;
       if (!isPlaylist && len && len < MIN_BYTES) return;
@@ -125,7 +134,7 @@ function itemsFor(tabId, dom, pageUrl) {
   for (const u of dom || []) {
     const key = String(u).split("?")[0];
     if (seen.has(key)) continue;
-    if (!MEDIA_EXT.test(u)) continue; // unknown/blob-like links are not offered as "FILE file"
+    if (!MEDIA_EXT.test(String(u).split("?")[0])) continue; // unknown/blob-like links are not offered as "FILE file"
     seen.add(key);
     const isPlaylist = /\.(m3u8|mpd)(\?|#|$)/i.test(u);
     all.push({
@@ -614,6 +623,15 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       const outerUrl = fi.tabUrl;
       const hit = formatsCache.get(pageUrl);
       if (hit && Date.now() - hit.time < 10 * 60 * 1000) { reply(hit.reply); return; }
+      // On sites yt-dlp does not know, a player that already showed its stream and qualities needs no slow lookup:
+      // they are all in "Detected on this page".
+      let site = "";
+      try { site = new URL(pageUrl).hostname; } catch (e) { /* not a web address */ }
+      const seenHere = [...(found.get(tabId)?.values() || [])];
+      if (!KNOWN_SITE.test(site) && seenHere.some((i) => i.kind === "stream" && (i.master || i.height))) {
+        reply({ ok: false, skipped: true });
+        return;
+      }
       // One lookup per page at a time: a prefetch and a menu click share it.
       let pending = formatsPending.get(pageUrl);
       if (!pending) {

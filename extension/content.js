@@ -43,7 +43,11 @@
   // After the extension is reloaded, old pages lose their connection. Fail quietly instead of throwing.
   function safeSend(msg, cb) {
     try {
-      if (!chrome.runtime || !chrome.runtime.id) return;
+      // The extension was updated or reloaded while this page was open: this copy can no longer reach it.
+      if (!chrome.runtime || !chrome.runtime.id) {
+        if (cb) cb({ ok: false, error: "Doddy was updated: reload this page" });
+        return;
+      }
       chrome.runtime.sendMessage(msg, (r) => {
         if (chrome.runtime.lastError) { if (cb) cb(undefined); return; }
         if (cb) cb(r);
@@ -298,6 +302,8 @@
             add(top, esc(f.label), (alt) => start(null, { height: f.height, label: f.label, source: r.source }, alt));
           }
           add(top, "Audio only<small>MP3</small>", (alt) => start(null, { audio: true, source: r.source }, alt));
+        } else if (r && r.skipped) {
+          // the qualities are in the "Detected on this page" list below
         } else {
           add(top, "No quality list: " + esc((r && r.error) || "no reply from helper"), null, true);
         }
