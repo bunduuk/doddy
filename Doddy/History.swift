@@ -16,6 +16,10 @@ struct SavedItem: Codable {
     var total: Int64
     var ranged: Bool
     var segs: [[Int64]]
+    var addedAt: Double?          // seconds since 1970 (older history files do not have the next three)
+    var finishedAt: Double?
+    var expectedBytes: Int64?
+    var savedBytes: Int64?
     var hiddenInMenu: Bool?      // cleared from the menu bar list (older history files do not have this)
 }
 
@@ -65,7 +69,9 @@ extension DownloadItem {
         return SavedItem(job: j, title: title, state: state.key, progress: progress, method: method,
                          detail: detail, saveDir: saveDir.path, outputPath: outputURL?.path,
                          waiting: waiting, dest: resume.dest?.path, total: resume.total,
-                         ranged: resume.ranged, segs: resume.segs, hiddenInMenu: hiddenInMenu)
+                         ranged: resume.ranged, segs: resume.segs,
+                         addedAt: addedAt.timeIntervalSince1970, finishedAt: finishedAt?.timeIntervalSince1970,
+                         expectedBytes: expectedBytes, savedBytes: savedBytes, hiddenInMenu: hiddenInMenu)
     }
 
     convenience init(saved s: SavedItem) {
@@ -78,6 +84,10 @@ extension DownloadItem {
         if let p = s.outputPath { outputURL = URL(fileURLWithPath: p) }
         waiting = s.waiting
         hiddenInMenu = s.hiddenInMenu ?? false
+        if let t = s.addedAt { addedAt = Date(timeIntervalSince1970: t) }
+        if let t = s.finishedAt { finishedAt = Date(timeIntervalSince1970: t) }
+        expectedBytes = s.expectedBytes ?? 0
+        savedBytes = s.savedBytes ?? 0
         if let d = s.dest {
             resume.dest = URL(fileURLWithPath: d)
             resume.total = s.total

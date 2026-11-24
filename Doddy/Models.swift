@@ -154,6 +154,10 @@ final class DownloadItem: ObservableObject, Identifiable {
     @Published var history: [Double] = []   // download speed, bytes per second, about one sample a second
     var lastSample = Date.distantPast
     var retries = 0                   // automatic retries used so far
+    var addedAt = Date()              // when the download was first added
+    var finishedAt: Date?             // when it completed
+    var expectedBytes: Int64 = 0      // size the server announced (0 = unknown)
+    var savedBytes: Int64 = 0         // size of the file when it completed
 
     init(job: Job) {
         self.job = job

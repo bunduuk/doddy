@@ -8,6 +8,7 @@ typealias ProgressFn = @Sendable (Double, String) -> Void
 final class ResumeBox: @unchecked Sendable {
     var dest: URL?
     var total: Int64 = 0
+    var expected: Int64 = 0       // size the server announced; kept after the download, to check the file is complete
     var ranged = false
     var segs: [[Int64]] = []      // [start, next, end] per segment
     var fractions: [Double] = []  // live progress of each segment, 0...1 (for the segment bar)
@@ -463,6 +464,7 @@ enum Downloaders {
 
         // Continue a paused download: no new probe request (matters for single-use links).
         if let d = box.dest, box.ranged, !box.segs.isEmpty, FileManager.default.fileExists(atPath: d.path) {
+            if box.expected == 0 { box.expected = box.total }
             let again = RangedDownloader(url: url, headers: headers, dest: d, total: box.total,
                                          ranged: true, connections: 8, progress: progress, box: box)
             do { try await again.run() } catch is CancellationError {
@@ -472,6 +474,7 @@ enum Downloaders {
                 if !keepsPieces(error) { box.discard() }            // expired link or dropped connection: keep the pieces
                 throw error
             }
+            try verifyComplete(d, expected: box.expected)
             box.clear()
             if d.pathExtension.lowercased() == "ts" {
                 progress(-1, "Converting to MP4…")
@@ -480,6 +483,7 @@ enum Downloaders {
             return d
         }
         box.discard()   // nothing resumable: start clean
+        box.expected = 0
 
         // Probe: ask for 1 byte, see whether ranges are honoured and how big the file is.
         var probe = URLRequest(url: url)
@@ -527,6 +531,7 @@ enum Downloaders {
         let useRanges = ranged && total > 2_000_000
         box.dest = dest
         box.total = total
+        box.expected = total
         box.ranged = useRanges
         box.segs = []
         let dl = RangedDownloader(url: url, headers: headers, dest: dest, total: total,
@@ -567,12 +572,24 @@ enum Downloaders {
                 throw error
             }
         }
+        try verifyComplete(dest, expected: box.expected)
         box.clear()
         if dest.pathExtension.lowercased() == "ts" {
             progress(-1, "Converting to MP4…")
             return try await remuxToMP4(dest)
         }
         return dest
+    }
+
+    /// A connection that dropped quietly (a closed laptop lid, a streaming server hanging up) can leave a short
+    /// file and no error. Compare with the size the server announced before calling the download finished.
+    static func verifyComplete(_ file: URL, expected: Int64) throws {
+        guard expected > 0,
+              let have = (try? FileManager.default.attributesOfItem(atPath: file.path)[.size] as? NSNumber)?.int64Value,
+              have < expected else { return }
+        let fmt = ByteCountFormatter(); fmt.countStyle = .file
+        try? FileManager.default.trashItem(at: file, resultingItemURL: nil)
+        throw DLError.msg("The download stopped early: \(fmt.string(fromByteCount: have)) of \(fmt.string(fromByteCount: expected)) arrived, so the incomplete file was moved to the Bin. Press retry to download it again.")
     }
 
     /// Errors after which the pieces already on disk are worth keeping: an expired link (Refresh link continues)

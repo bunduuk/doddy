@@ -61,6 +61,59 @@ struct DownloadInfo: View {
         return out
     }
 
+    /// Size of a file in bytes (0 when it is missing).
+    static func size(of url: URL) -> Int64 {
+        ((try? FileManager.default.attributesOfItem(atPath: url.path)[.size]) as? NSNumber)?.int64Value ?? 0
+    }
+
+    private struct Fact: Identifiable {
+        let id: String, label: String, value: String, symbol: String, warn: Bool
+    }
+
+    /// Size, dates and whether the file is complete: what to look at when the same file was downloaded twice.
+    private var facts: [Fact] {
+        let fmt = ByteCountFormatter(); fmt.countStyle = .file
+        let dateFmt = DateFormatter(); dateFmt.dateStyle = .medium; dateFmt.timeStyle = .medium
+        var out: [Fact] = []
+        let file = item.outputURL
+        let exists = file.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+        let onDisk = exists ? Self.size(of: file!) : 0
+        let saved = onDisk > 0 ? onDisk : item.savedBytes
+        let expected = item.expectedBytes > 0 ? item.expectedBytes : (item.job.sizeHint ?? 0)
+        if item.state == .done {
+            var text = saved > 0 ? fmt.string(fromByteCount: saved) : "unknown"
+            var warn = false
+            if !exists { text += " (file not found)"; warn = true }
+            else if expected > 0 && saved > 0 {
+                if saved >= expected { text += " of \(fmt.string(fromByteCount: expected)) · complete" }
+                else if item.expectedBytes > 0 || saved * 100 < expected * 97 {
+                    text += " of \(fmt.string(fromByteCount: expected)) · INCOMPLETE"; warn = true
+                } else { text += " · size announced: \(fmt.string(fromByteCount: expected))" }
+            } else { text += " · the site did not announce a size, so completeness cannot be checked" }
+            out.append(Fact(id: "s", label: "Size", value: text, symbol: warn ? "exclamationmark.triangle" : "internaldrive", warn: warn))
+        } else if expected > 0 {
+            out.append(Fact(id: "s", label: "Size", value: fmt.string(fromByteCount: expected), symbol: "internaldrive", warn: false))
+        }
+        var added = item.addedAt
+        var finished = item.finishedAt
+        if item.state == .done, finished == nil, let f = file,
+           let d = (try? FileManager.default.attributesOfItem(atPath: f.path)[.modificationDate]) as? Date {
+            finished = d   // older history: the file's own date
+            if d < added { added = d }
+        }
+        out.append(Fact(id: "t", label: "Added", value: dateFmt.string(from: added), symbol: "calendar", warn: false))
+        if let f = finished, item.state == .done {
+            let secs = Int(f.timeIntervalSince(added))
+            var took = ""
+            if secs > 0 && secs < 86_400 * 3 {
+                let h = secs / 3600, m = (secs % 3600) / 60
+                took = " (took " + (h > 0 ? "\(h) h " : "") + "\(m) min \(secs % 60) s)"
+            }
+            out.append(Fact(id: "f", label: "Finished", value: dateFmt.string(from: f) + took, symbol: "checkmark.circle", warn: false))
+        }
+        return out
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -71,6 +124,19 @@ struct DownloadInfo: View {
                         .help("Links can contain sign-in tokens; they are shortened unless you ask")
                 }
             }
+            ForEach(facts) { f in
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: f.symbol).foregroundStyle(f.warn ? Color.orange : .secondary).frame(width: 16)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(f.label).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        Text(f.value).font(.system(size: 12, weight: f.warn ? .semibold : .regular))
+                            .foregroundStyle(f.warn ? Color.orange : .primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 8)
+                }
+            }
+            Divider()
             ForEach(lines) { l in
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: l.symbol).foregroundStyle(.secondary).frame(width: 16)

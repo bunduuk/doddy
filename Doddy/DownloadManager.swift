@@ -447,6 +447,7 @@ final class DownloadManager: ObservableObject {
             guard let g = got else { throw realError ?? lastError }
             out = g
             try Task.checkCancellation()
+            if item.resume.expected > 0 { item.expectedBytes = item.resume.expected }
             if UserDefaults.standard.bool(forKey: "subtitlesOn") && job.audioOnly != true {
                 item.progress = -1
                 out = await Subtitles.process(out, translate: UserDefaults.standard.bool(forKey: "translateSubs")) { item.speed = $0 }
@@ -468,6 +469,9 @@ final class DownloadManager: ObservableObject {
                 item.title = out.deletingPathExtension().lastPathComponent   // the real name, not the site it came from
             }
             item.outputURL = out
+            item.finishedAt = Date()
+            item.savedBytes = DownloadInfo.size(of: out)
+            if item.expectedBytes == 0, let h = job.sizeHint, h > 0 { item.expectedBytes = h }
             if !AddressText.remember { item.job = item.job.forgettingAddresses() }
             item.retries = 0
             item.progress = 1
