@@ -104,6 +104,10 @@ Doddy's data lives in `~/Library/Application Support/Doddy`, its log in `~/Libra
 
 Doddy is a general-purpose download manager. It does not remove DRM or other copy protection: protected (DRM) streams are recognised and refused. You are responsible for making sure you have the right to download what you download, and for following each site's terms.
 
+## Credits
+
+Doddy is designed and directed by bunduuk. Most of the code was written by [Claude](https://www.anthropic.com/claude) (Anthropic), working from bunduuk's requirements, with every build tested by hand on a Mac.
+
 ## Licence
 
 [MIT](LICENSE) © 2026 bunduuk
