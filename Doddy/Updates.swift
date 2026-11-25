@@ -17,11 +17,21 @@ enum UpdateChecker {
         return false
     }
 
-    /// Once a day at most, quietly.
+    private static var timer: Timer?
+
+    /// Checks at start-up and then every few hours while Doddy stays open (it often runs for days in the menu bar).
+    static func startAutomaticChecks() {
+        checkIfDue()
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 3 * 3600, repeats: true) { _ in checkIfDue() }
+    }
+
+    /// At most twice a day, quietly, and only when "Check automatically" is on (it is by default).
     static func checkIfDue() {
         let d = UserDefaults.standard
+        guard d.object(forKey: "updateAuto") as? Bool ?? true else { return }
         let last = d.object(forKey: "updateLastCheck") as? Date ?? .distantPast
-        guard Date().timeIntervalSince(last) > 86400 else { return }
+        guard Date().timeIntervalSince(last) > 12 * 3600 else { return }
         Task { await check(manual: false) }
     }
 
@@ -43,7 +53,12 @@ enum UpdateChecker {
         }
         let page = (json["html_url"] as? String).flatMap(URL.init(string:))
         if isNewer(tag, than: current) {
-            await show("Doddy \(tag) is available", "You have \(current).", page)
+            // An automatic check tells you once per version; "Check now" always tells you.
+            let d = UserDefaults.standard
+            if manual || d.string(forKey: "updateNotified") != tag {
+                d.set(tag, forKey: "updateNotified")
+                await show("Doddy \(tag) is available", "You have \(current). Download the .dmg from the release page, drag Doddy into Applications, then reload the extension.", page)
+            }
         } else if manual {
             await show("You are up to date", "Doddy \(current) is the latest version.", nil)
         }

@@ -22,7 +22,7 @@ struct DoddyApp: App {
         Installer.registerHost()
         Installer.prepareExtensionFolder()   // the folder Chrome loads from always holds this version's extension
         Notifier.requestPermission()
-        UpdateChecker.checkIfDue()
+        UpdateChecker.startAutomaticChecks()
         DispatchQueue.main.async {
             NSApplication.shared.setActivationPolicy(.regular)
             NSApplication.shared.activate(ignoringOtherApps: true)

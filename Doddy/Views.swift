@@ -464,6 +464,7 @@ struct SetupView: View {
     @AppStorage("chromeCookies") private var chromeCookies = false
     @AppStorage("fastYouTube") private var fastYouTube = true
     @AppStorage("updateRepo") private var updateRepo = "bunduuk/doddy"
+    @AppStorage("updateAuto") private var updateAuto = true
     @AppStorage("watchClipboard") private var watchClipboard = false
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("sortFolders") private var sortFolders = "none"
@@ -750,7 +751,7 @@ struct SetupView: View {
                     TextField("name/repository (optional)", text: $updateRepo).textFieldStyle(.roundedBorder)
                     Button { Task { await UpdateChecker.check(manual: true) } } label: { Label("Check now", systemImage: "arrow.clockwise") }.glassButton(prominent: true)
                 }
-                Text("Checks GitHub for new releases.").font(.caption).foregroundStyle(.secondary)
+                flag("Check automatically", "Looks every few hours while Doddy is open and tells you once per new version.", $updateAuto)
             }
             section("Backup & help", "lifepreserver", Theme.orange, subtitle: "Backup and support") {
                 HStack {

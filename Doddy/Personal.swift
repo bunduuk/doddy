@@ -225,7 +225,7 @@ enum SettingsBackup {
     static let keys = ["askBeforeDownload", "saveDir", "showProgressWindow", "maxParallel", "speedLimitKB",
                        "scheduleEnabled", "scheduleMinutes", "afterQueue", "nameTemplate", "subtitlesOn",
                        "subtitleLangs", "translateSubs", "cleanNames", "finishSound", "chromeCookies",
-                       "updateRepo", "watchClipboard", "launchAtLogin", "sortFolders", "convertAfter",
+                       "updateRepo", "updateAuto", "watchClipboard", "launchAtLogin", "sortFolders", "convertAfter",
                        "convertDeleteOriginal", "siteRules", "autoRetry", "fastYouTube", "rememberAddresses"]
 
     private static func alert(_ title: String, _ text: String) {
