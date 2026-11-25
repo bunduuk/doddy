@@ -74,6 +74,8 @@ cd doddy
 
 `build.sh` generates the Xcode project, builds a Release copy, installs it as `/Applications/Doddy.app` and opens it. To work in Xcode instead, run `python3 tools/genproj.py` once and open `Doddy.xcodeproj`.
 
+`./tools/test.sh` runs the small self-contained tests (completeness, "is it the same file", disk space, checksums) in a few seconds, without building the app.
+
 `./tools/package.sh` does the same and also puts a disk image and the extension zip in `dist/`, ready to share. Because the app is not notarised, another Mac will block it the first time: right-click the app and choose **Open**, or run `xattr -dr com.apple.quarantine /Applications/Doddy.app`.
 
 ## Install the browser extension

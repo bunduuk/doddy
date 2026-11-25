@@ -213,8 +213,14 @@ final class DownloadItem: ObservableObject, Identifiable {
 
 enum DLError: LocalizedError {
     case msg(String)
+    case changed(String)      // the file on the server is not the one the saved pieces came from
+    case noSpace(String)
     var errorDescription: String? {
-        switch self { case .msg(let s): return s }
+        switch self {
+        case .msg(let s), .noSpace(let s): return s
+        case .changed(let why):
+            return "The file changed on the server (\(why)) since this download started, so the partial file was discarded. Press retry to download the new version."
+        }
     }
 }
 

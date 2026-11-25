@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import CryptoKit
 
 /// Short forms of download addresses: signed links can carry tokens, so the full address is shown only on request.
 enum AddressText {
@@ -37,10 +38,30 @@ extension Job {
     }
 }
 
+/// SHA-256 of a file, read in pieces so a large file does not fill the memory.
+enum FileHash {
+    static func sha256(of url: URL) async -> String? {
+        await Task.detached(priority: .utility) { () -> String? in
+            guard let h = try? FileHandle(forReadingFrom: url) else { return nil }
+            defer { try? h.close() }
+            var hasher = SHA256()
+            while true {
+                let chunk = try? h.read(upToCount: 4 << 20)
+                guard let c = chunk, !c.isEmpty else { break }
+                hasher.update(data: c)
+            }
+            return Checks.hex(Array(hasher.finalize()))
+        }.value
+    }
+}
+
 /// IDM-style download properties: where a download came from, each line with a copy button.
 struct DownloadInfo: View {
     @ObservedObject var item: DownloadItem
     @State private var full = false
+    @State private var hash: String?
+    @State private var hashing = false
+    @State private var compare = ""
 
     private struct Line: Identifiable {
         let id: String, label: String, value: String, symbol: String, isPath: Bool
@@ -152,6 +173,46 @@ struct DownloadInfo: View {
                     Button { AddressText.copy(l.value) } label: { Image(systemName: "doc.on.doc") }
                         .buttonStyle(.borderless)
                         .help("Copy \(l.label.lowercased())")
+                }
+            }
+            if item.state == .done, let f = item.outputURL, FileManager.default.fileExists(atPath: f.path) {
+                Divider()
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Checksum (SHA-256)").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        Spacer()
+                        if hashing {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Button(hash == nil ? "Calculate" : "Again") {
+                                hashing = true
+                                Task {
+                                    let h = await FileHash.sha256(of: f)
+                                    hash = h
+                                    hashing = false
+                                }
+                            }
+                            .controlSize(.small)
+                        }
+                    }
+                    if let hash {
+                        HStack(alignment: .top) {
+                            Text(hash).font(.system(size: 11, design: .monospaced)).textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 8)
+                            Button { AddressText.copy(hash) } label: { Image(systemName: "doc.on.doc") }
+                                .buttonStyle(.borderless).help("Copy checksum")
+                        }
+                        TextField("Paste the published checksum to compare", text: $compare)
+                            .textFieldStyle(.roundedBorder).font(.system(size: 11))
+                        if !compare.trimmingCharacters(in: .whitespaces).isEmpty {
+                            let same = Checks.normalisedHash(compare) == hash
+                            Label(same ? "Matches: the file is exactly the published one" : "Does not match: the file differs or is damaged",
+                                  systemImage: same ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(same ? Color.green : Color.orange)
+                        }
+                    }
                 }
             }
             if item.job.addressForgotten == true {

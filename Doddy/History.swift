@@ -20,6 +20,8 @@ struct SavedItem: Codable {
     var finishedAt: Double?
     var expectedBytes: Int64?
     var savedBytes: Int64?
+    var etag: String?             // the server's version of the file, to notice a change on resume
+    var lastModified: String?
     var hiddenInMenu: Bool?      // cleared from the menu bar list (older history files do not have this)
 }
 
@@ -71,7 +73,8 @@ extension DownloadItem {
                          waiting: waiting, dest: resume.dest?.path, total: resume.total,
                          ranged: resume.ranged, segs: resume.segs,
                          addedAt: addedAt.timeIntervalSince1970, finishedAt: finishedAt?.timeIntervalSince1970,
-                         expectedBytes: expectedBytes, savedBytes: savedBytes, hiddenInMenu: hiddenInMenu)
+                         expectedBytes: expectedBytes, savedBytes: savedBytes,
+                         etag: resume.etag, lastModified: resume.lastModified, hiddenInMenu: hiddenInMenu)
     }
 
     convenience init(saved s: SavedItem) {
@@ -93,6 +96,8 @@ extension DownloadItem {
             resume.total = s.total
             resume.ranged = s.ranged
             resume.segs = s.segs
+            resume.etag = s.etag
+            resume.lastModified = s.lastModified
         }
 
         var st = DLState(key: s.state)

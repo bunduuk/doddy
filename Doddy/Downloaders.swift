@@ -10,9 +10,11 @@ final class ResumeBox: @unchecked Sendable {
     var total: Int64 = 0
     var expected: Int64 = 0       // size the server announced; kept after the download, to check the file is complete
     var ranged = false
+    var etag: String?             // what the server said the file was at the start: a resume must see the same
+    var lastModified: String?
     var segs: [[Int64]] = []      // [start, next, end] per segment
     var fractions: [Double] = []  // live progress of each segment, 0...1 (for the segment bar)
-    func clear() { dest = nil; total = 0; ranged = false; segs = []; fractions = [] }
+    func clear() { dest = nil; total = 0; ranged = false; segs = []; fractions = []; etag = nil; lastModified = nil }
     func discard() {
         if let d = dest { try? FileManager.default.removeItem(at: d) }
         clear()
@@ -157,6 +159,23 @@ final class RangedDownloader: NSObject, URLSessionDataDelegate {
                 completionHandler(.cancel)
                 finish(DLError.msg("Server answered HTTP \(http.statusCode)"))
                 return
+            }
+            // Same file as before? Every piece's answer carries the size and version, so no extra request is needed.
+            if let box, http.statusCode == 206 || (200..<300).contains(http.statusCode) {
+                let etag = http.value(forHTTPHeaderField: "ETag")
+                let modified = http.value(forHTTPHeaderField: "Last-Modified")
+                let newTotal = http.statusCode == 206
+                    ? Checks.contentRangeTotal(http.value(forHTTPHeaderField: "Content-Range")) : nil
+                if case .changed(let why) = Checks.sameFile(knownETag: box.etag, newETag: etag,
+                                                            knownModified: box.lastModified, newModified: modified,
+                                                            knownTotal: total, newTotal: newTotal) {
+                    AppLog.write("file changed on the server: \(why)")
+                    completionHandler(.cancel)
+                    finish(DLError.changed(why))
+                    return
+                }
+                if box.etag == nil, let etag { box.etag = etag }
+                if box.lastModified == nil, let modified { box.lastModified = modified }
             }
         }
         completionHandler(.allow)
@@ -493,6 +512,8 @@ enum Downloaders {
         var ranged = false
         var ctype = ""
         var disp = ""
+        var probeETag: String?
+        var probeModified: String?
         var probeFailed = false
         var needBrowser = false
         do {
@@ -510,6 +531,8 @@ enum Downloaders {
                 }
                 ctype = http.value(forHTTPHeaderField: "Content-Type") ?? ""
                 disp = fileNameFromDisposition(http.value(forHTTPHeaderField: "Content-Disposition") ?? "")
+                probeETag = http.value(forHTTPHeaderField: "ETag")
+                probeModified = http.value(forHTTPHeaderField: "Last-Modified")
             } else {
                 // Some servers refuse the 1-byte range request (503, 403, 416...) but serve a plain GET.
                 AppLog.write("probe answered HTTP \(http.statusCode); trying a plain download")
@@ -528,10 +551,19 @@ enum Downloaders {
         let name = Naming.base(job) + ext(url: url, contentType: ctype, disposition: disp)
         let dest = uniqueURL(outDir(job).appendingPathComponent(name))
 
+        // Room for the whole file, before any byte is written.
+        if total > 0, let free = try? outDir(job).resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+            .volumeAvailableCapacityForImportantUsage,
+           !Checks.hasRoom(needed: total, available: free) {
+            throw DLError.noSpace("Not enough space on the disk: this file needs \(Checks.size(total)) and only \(Checks.size(free)) is free. Free some space and press retry.")
+        }
+
         let useRanges = ranged && total > 2_000_000
         box.dest = dest
         box.total = total
         box.expected = total
+        box.etag = probeETag
+        box.lastModified = probeModified
         box.ranged = useRanges
         box.segs = []
         let dl = RangedDownloader(url: url, headers: headers, dest: dest, total: total,
@@ -586,7 +618,7 @@ enum Downloaders {
     static func verifyComplete(_ file: URL, expected: Int64) throws {
         guard expected > 0,
               let have = (try? FileManager.default.attributesOfItem(atPath: file.path)[.size] as? NSNumber)?.int64Value,
-              have < expected else { return }
+              !Checks.isComplete(have: have, expected: expected) else { return }
         let fmt = ByteCountFormatter(); fmt.countStyle = .file
         try? FileManager.default.trashItem(at: file, resultingItemURL: nil)
         throw DLError.msg("The download stopped early: \(fmt.string(fromByteCount: have)) of \(fmt.string(fromByteCount: expected)) arrived, so the incomplete file was moved to the Bin. Press retry to download it again.")
