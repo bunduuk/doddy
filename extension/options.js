@@ -5,7 +5,7 @@ function flash() {
 }
 const defaults = {
   autoPlay: false, takeover: false, takeoverMinMB: 5,
-  takeoverExts: "torrent,zip,rar,7z,tar,gz,iso,dmg,pkg,exe,msi,mp4,mkv,avi,mov,wmv,flv,webm,mp3,flac,wav,m4a,pdf",
+  takeoverExts: "torrent,zip,rar,7z,tar,gz,tgz,xz,bz2,zst,iso,img,bin,dd,dmg,pkg,exe,msi,apk,deb,rpm,appimage,jar,mp4,mkv,avi,mov,wmv,flv,webm,mpg,mpeg,ts,mp3,flac,wav,m4a,aac,ogg,opus,pdf,epub",
   takeoverExclude: "",
 };
 chrome.storage.sync.get(defaults, (c) => {
