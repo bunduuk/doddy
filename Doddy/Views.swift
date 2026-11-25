@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var page: Page = .all
     @State private var tick = 0
     @State private var stateKey = 0
+    @ObservedObject private var act = AppActivity.shared
     @State private var query = ""
     @AppStorage("onboardingDone") private var onboardingDone = false
     @State private var showTour = false
@@ -146,7 +147,7 @@ struct ContentView: View {
             }
         } else if filtered(page).isEmpty {
             VStack(spacing: 12) {
-                TimelineView(.animation(minimumInterval: 1.0 / 20)) { ctx in
+                TimelineView(.animation(minimumInterval: 1.0 / 20, paused: !act.active)) { ctx in
                     let t = ctx.date.timeIntervalSinceReferenceDate
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.system(size: 64))

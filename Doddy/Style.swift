@@ -148,9 +148,28 @@ struct FunBar: View {
     }
 }
 
+/// Whether Doddy is the frontmost app. Decorative animations pause when it is not, so a hidden or
+/// closed window never keeps the display cycle busy (it showed up as steady CPU use at idle).
+@MainActor
+final class AppActivity: ObservableObject {
+    static let shared = AppActivity()
+    @Published var active: Bool
+    private init() {
+        active = NSApplication.shared.isActive
+        let c = NotificationCenter.default
+        c.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.active = true }
+        }
+        c.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.active = false }
+        }
+    }
+}
+
 struct Shimmer: View {
+    @ObservedObject private var act = AppActivity.shared
     var body: some View {
-        TimelineView(.animation) { ctx in
+        TimelineView(.animation(minimumInterval: nil, paused: !act.active)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let phase = t.truncatingRemainder(dividingBy: 1.6) / 1.6
             GeometryReader { g in
@@ -165,11 +184,12 @@ struct Shimmer: View {
 }
 
 struct Bouncer: View {
+    @ObservedObject private var act = AppActivity.shared
     var colors: [Color]
     var width: CGFloat
     var height: CGFloat
     var body: some View {
-        TimelineView(.animation) { ctx in
+        TimelineView(.animation(minimumInterval: nil, paused: !act.active)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let seg = width * 0.3
             let x = (width - seg) * CGFloat(0.5 + 0.5 * sin(t * 2.4))
@@ -182,6 +202,7 @@ struct Bouncer: View {
 }
 
 struct ProgressRing: View {
+    @ObservedObject private var act = AppActivity.shared
     var value: Double?
     var colors: [Color]
     var label: String
@@ -199,7 +220,7 @@ struct ProgressRing: View {
                     .rotationEffect(.degrees(-90))
                     .animation(.easeOut(duration: 0.4), value: v)
             } else {
-                TimelineView(.animation) { ctx in
+                TimelineView(.animation(minimumInterval: nil, paused: !act.active)) { ctx in
                     let t = ctx.date.timeIntervalSinceReferenceDate
                     Circle()
                         .trim(from: 0, to: 0.28)
@@ -301,8 +322,9 @@ func formatDuration(_ s: TimeInterval) -> String {
 
 /// Replaces the plain hairline with a soft rainbow glow that slowly drifts.
 struct GradientLine: View {
+    @ObservedObject private var act = AppActivity.shared
     var body: some View {
-        TimelineView(.animation) { ctx in
+        TimelineView(.animation(minimumInterval: nil, paused: !act.active)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let shift = CGFloat((t / 6).truncatingRemainder(dividingBy: 1))
             ZStack {
