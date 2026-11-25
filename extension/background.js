@@ -390,7 +390,7 @@ function frameInfo(sender, msg) {
 const TAKEOVER_DEFAULTS = {
   takeover: false,
   takeoverMinMB: 5,
-  takeoverExts: "torrent,zip,rar,7z,tar,gz,iso,dmg,pkg,exe,msi,mp4,mkv,avi,mov,wmv,flv,webm,mp3,flac,wav,m4a,pdf",
+  takeoverExts: "torrent,zip,rar,7z,tar,gz,tgz,xz,bz2,zst,iso,img,bin,dd,dmg,pkg,exe,msi,apk,deb,rpm,appimage,jar,mp4,mkv,avi,mov,wmv,flv,webm,mpg,mpeg,ts,mp3,flac,wav,m4a,aac,ogg,opus,pdf,epub",
   takeoverExclude: "",
 };
 let lastOption = 0;   // last time the user clicked something with Option held, on any page
@@ -415,7 +415,9 @@ chrome.downloads.onCreated.addListener(async (it) => {
     if (hosts.some((h) => h && ALWAYS_CHROME.some((d) => h === d || h.endsWith("." + d)))) return;
     const excluded = String(cfg.takeoverExclude).toLowerCase().split(/[\s,]+/).filter(Boolean);
     if (excluded.some((h) => u.hostname === h || u.hostname.endsWith("." + h))) return;
-    const exts = String(cfg.takeoverExts).toLowerCase().split(/[\s,]+/).filter(Boolean);
+    // Your list, plus a few obvious file types that were added later (an older saved list would miss them).
+    const exts = String(cfg.takeoverExts).toLowerCase().split(/[\s,]+/).filter(Boolean)
+      .concat(["bin", "dd", "img", "tgz", "xz", "bz2", "zst", "apk", "deb", "rpm", "appimage", "jar", "mpeg", "mpg", "aac", "ogg", "opus", "epub"]);
     let nameFromUrl = "";
     try { nameFromUrl = decodeURIComponent(u.pathname.split("/").pop() || ""); } catch (e) { nameFromUrl = u.pathname.split("/").pop() || ""; }
     let known = it.filename || "";
@@ -427,8 +429,12 @@ chrome.downloads.onCreated.addListener(async (it) => {
     const fileName = (known ? known.split(/[\\/]/).pop() : "") || nameFromUrl;
     const ext = fileName.includes(".") ? fileName.split(".").pop().toLowerCase() : "";
     const isTorrent = ext === "torrent" || /bittorrent/i.test(it.mime || "") || /\.torrent(\?|$)/i.test(url);
-    if (!isTorrent && !exts.includes(ext)) return;
     const size = it.fileSize > 0 ? it.fileSize : (it.totalBytes > 0 ? it.totalBytes : 0);
+    // A type that is not on the list is still a file when Chrome itself decided to download it as a binary
+    // (unknown extension, or served as a plain download) and it is big enough.
+    const binaryMime = /^(application\/octet-stream|binary\/octet-stream|application\/x-binary|application\/force-download|application\/download)/i.test(it.mime || "");
+    const bigUnknown = !exts.includes(ext) && (binaryMime || !ext) && size >= Math.max(cfg.takeoverMinMB, 20) * 1024 * 1024;
+    if (!isTorrent && !exts.includes(ext) && !bigUnknown) return;
     if (!isTorrent && size && size < cfg.takeoverMinMB * 1024 * 1024) return;
 
     // Chrome's own copy is stopped and removed; the app downloads it faster, in pieces.

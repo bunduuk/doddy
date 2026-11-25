@@ -19,6 +19,10 @@
   button { background: linear-gradient(135deg,#f5894c,#db5c8f 55%,#a843bd); color: #fff; border: 0; border-radius: 999px; padding: 6px 13px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
   button.alt { background: #2a2f5e; font-weight: 500; }
   button:hover { filter: brightness(1.12); }
+  #list:empty { display: none; }
+  .grab { padding: 6px 16px 14px; }
+  .grab button { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: 12px; border: 1px solid #343a70; font-size: 13px; }
+  .grab button svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
   .empty { padding: 22px 16px; color: #8c93c4; line-height: 1.55; text-align: center; }
   #msg { padding: 0 16px 12px; color: #f5a56b; min-height: 1.2em; }
   .set { margin: 0 16px 14px; padding: 12px 14px; background: #1a1e3f; border: 1px solid #2a2f5e; border-radius: 16px; }
@@ -39,7 +43,7 @@
 <div class="page"><span id="page">This page</span><button id="best">Best quality</button></div>
 <div id="extras" style="display:flex;gap:8px;padding:0 16px 10px;flex-wrap:wrap"></div>
 <div id="list"></div>
-<div style="padding:0 16px 12px"><button class="alt" id="grab" title="List every link, file and picture on this page and choose which to download">Grab links on this page…</button></div>
+<div class="grab"><button class="alt" id="grab" title="List every link, file and picture on this page and choose which to download"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Grab links on this page…</button></div>
 <div class="set">
   <h4>Settings</h4>
   <label class="sw"><span>Take over Chrome downloads<small>Big files and .torrent files go to Doddy.</small></span><input type="checkbox" id="takeover"></label>
