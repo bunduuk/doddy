@@ -36,6 +36,9 @@ final class RangedDownloader: NSObject, URLSessionDataDelegate {
     private let lock = NSLock()
     private var offsets: [Int: Int64] = [:]
     private var segInfo: [Int: (Int64, Int64)] = [:]   // task id -> (start, end)
+    private var finishedTasks: Set<Int> = []           // pieces that are done (their connection may still be closing)
+    private var cutTasks: Set<Int> = []                // pieces shortened because a free connection took their second half
+    private var cutDone: Set<Int> = []                 // shortened pieces that reached their new end and were cancelled
     private var received: Int64 = 0
     private var pending = 0
     private var continuation: CheckedContinuation<Void, Error>?
@@ -156,6 +159,10 @@ final class RangedDownloader: NSObject, URLSessionDataDelegate {
             let isRange = ranged || hasSegs
             let ok = isRange ? http.statusCode == 206 : (200..<300).contains(http.statusCode)
             if !ok {
+                if http.statusCode == 429 {
+                    // Remember it: no extra requests to this server for a while, and the retry waits as long as it asked.
+                    RateGate.shared.hit(url.host ?? "", retryAfter: Int(http.value(forHTTPHeaderField: "Retry-After") ?? ""))
+                }
                 completionHandler(.cancel)
                 finish(DLError.msg("Server answered HTTP \(http.statusCode)"))
                 return
@@ -188,16 +195,29 @@ final class RangedDownloader: NSObject, URLSessionDataDelegate {
         lock.lock()
         defer { lock.unlock() }
         guard let handle else { return }
-        let off = offsets[dataTask.taskIdentifier] ?? 0
+        let id = dataTask.taskIdentifier
+        let off = offsets[id] ?? 0
+        var chunk = data
+        if cutTasks.contains(id), let end = segInfo[id]?.1 {
+            // This piece was shortened: its second half is fetched by another connection, so stop at the new end.
+            let r = Checks.clampWrite(offset: off, end: end, count: data.count)
+            if r.write < data.count { chunk = Data(data.prefix(r.write)) }
+            if r.finished {
+                cutDone.insert(id)
+                dataTask.cancel()
+            }
+        }
         do {
-            try handle.seek(toOffset: UInt64(off))
-            try handle.write(contentsOf: data)
+            if !chunk.isEmpty {
+                try handle.seek(toOffset: UInt64(off))
+                try handle.write(contentsOf: chunk)
+            }
         } catch {
             DispatchQueue.global().async { self.finish(error) }
             return
         }
-        offsets[dataTask.taskIdentifier] = off + Int64(data.count)
-        received += Int64(data.count)
+        offsets[id] = off + Int64(chunk.count)
+        received += Int64(chunk.count)
 
         let now = Date()
         let dt = now.timeIntervalSince(lastTick)
@@ -221,16 +241,45 @@ final class RangedDownloader: NSObject, URLSessionDataDelegate {
         }
     }
 
+    /// A free connection takes the second half of the piece with the most left, so no connection sits idle while
+    /// a slow one finishes alone. Call with the lock held. Returns the new request, not yet started.
+    private func splitBiggestPiece() -> URLSessionDataTask? {
+        guard ranged, total > 0, connections > 1, !RateGate.shared.isSlowed(url.host) else { return nil }
+        let live = segInfo.keys.filter { !finishedTasks.contains($0) && !cutDone.contains($0) }.sorted()
+        let remaining = live.map { id -> Int64 in
+            guard let se = segInfo[id] else { return 0 }
+            return se.1 - (offsets[id] ?? se.0) + 1
+        }
+        guard let i = Checks.biggestRemaining(remaining) else { return nil }
+        let victim = live[i]
+        guard let se = segInfo[victim], let next = offsets[victim],
+              let mid = Checks.splitPoint(next: next, end: se.1) else { return nil }
+        var req = URLRequest(url: url)
+        headers.forEach { req.setValue($1, forHTTPHeaderField: $0) }
+        req.setValue("bytes=\(mid)-\(se.1)", forHTTPHeaderField: "Range")
+        let t = session.dataTask(with: req)
+        segInfo[victim] = (se.0, mid - 1)
+        cutTasks.insert(victim)
+        segInfo[t.taskIdentifier] = (mid, se.1)
+        offsets[t.taskIdentifier] = mid
+        return t
+    }
+
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        let id = task.taskIdentifier
         if let error {
-            finish(error)
-            return
+            lock.lock(); let wasCut = cutDone.contains(id); lock.unlock()
+            if !wasCut { finish(error); return }   // a shortened piece that was cancelled at its new end is a success
         }
         lock.lock()
+        finishedTasks.insert(id)
         pending -= 1
+        var thief: URLSessionDataTask?
+        if pending > 0 { thief = splitBiggestPiece(); if thief != nil { pending += 1 } }
         let done = pending <= 0
         let short = done && ranged && total > 0 && received < total
         lock.unlock()
+        thief?.resume()
         // A connection that closed early without an error would leave a hole in the file: treat it as a failure
         // (the pieces are kept, so retry continues from where each one stopped).
         if short { finish(DLError.msg("The server closed the connection early. Press retry to continue.")) }

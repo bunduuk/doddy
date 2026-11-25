@@ -59,6 +59,34 @@ enum Checks {
         return t.filter { !$0.isWhitespace }
     }
 
+    // MARK: Dynamic splitting
+
+    /// The smallest piece worth its own request when a free connection takes half of a running piece.
+    static let minSplitPiece: Int64 = 4_000_000
+
+    /// Where to cut a running piece (next byte to fetch ... end, inclusive): the free connection takes
+    /// `result ... end`, the running one keeps `next ... result - 1`. nil when the rest is too small to share.
+    static func splitPoint(next: Int64, end: Int64, minPiece: Int64 = minSplitPiece) -> Int64? {
+        let remaining = end - next + 1
+        guard remaining >= 2 * minPiece else { return nil }
+        return next + remaining / 2
+    }
+
+    /// The index of the piece with the most left to fetch (the first one on a tie), or nil for an empty list.
+    static func biggestRemaining(_ remaining: [Int64]) -> Int? {
+        guard var best = remaining.indices.first else { return nil }
+        for i in remaining.indices where remaining[i] > remaining[best] { best = i }
+        return best
+    }
+
+    /// A piece whose end moved in: how much of a received chunk still belongs to it, and whether it is now done.
+    static func clampWrite(offset: Int64, end: Int64, count: Int) -> (write: Int, finished: Bool) {
+        let room = end + 1 - offset
+        if room <= 0 { return (0, true) }
+        if Int64(count) >= room { return (Int(room), true) }
+        return (count, false)
+    }
+
     static func hex(_ bytes: [UInt8]) -> String { bytes.map { String(format: "%02x", $0) }.joined() }
 
     static func size(_ n: Int64) -> String {

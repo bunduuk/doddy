@@ -268,6 +268,13 @@ final class RateGate {
         return learnedGap[h] ?? 0.5
     }
 
+    /// Whether this server asked us to slow down lately (then no extra requests are made to it).
+    func isSlowed(_ host: String?) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        guard let h = host, let t = slowUntil[h] else { return false }
+        return t > Date()
+    }
+
     /// Seconds the server asked us to wait (0 when it did not say).
     var retryAfter: Int { lock.lock(); defer { lock.unlock() }; return lastSeconds }
 
