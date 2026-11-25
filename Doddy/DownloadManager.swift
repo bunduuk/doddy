@@ -8,6 +8,7 @@ final class DownloadManager: ObservableObject {
     @Published var items: [DownloadItem] = []
     private var timer: Timer?
     var saveTick = 0
+    var lastSaveSig = 0   // what the list looked like at the last save: nothing changed, nothing to encode
     @Published var holdUntil: Date?     // scheduler: new downloads wait until then
     var holdMinutes = -1
     var wasBusy = false

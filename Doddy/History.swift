@@ -119,6 +119,18 @@ extension DownloadManager {
     func saveHistory(force: Bool = false) {
         saveTick += 1
         guard force || saveTick % 4 == 0 else { return }
+        if !force {
+            // Idle: skip the copy-and-encode of the whole history when no download changed.
+            var h = Hasher()
+            for i in items {
+                h.combine(i.id); h.combine(i.state.key); h.combine(Int(i.progress * 200))
+                h.combine(i.title); h.combine(i.outputURL?.path); h.combine(i.hiddenInMenu)
+                h.combine(i.job.url); h.combine(i.detail.count); h.combine(i.resume.segs.count)
+            }
+            let sig = h.finalize()
+            if sig == lastSaveSig { return }
+            lastSaveSig = sig
+        }
         let snaps = items.map { $0.snapshot() }
         let previous = lastSavedHistory
         let url = Self.historyURL
