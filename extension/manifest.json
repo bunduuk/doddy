@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Doddy Download Manager",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Sends downloads, video streams and links from your browser to the Doddy download manager for Mac.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu9t9uwN22YqUVb8YdGN1ptOL05dzH1MVG6mEGBVBxjjUYQwUAPuQUgVksdAOUhxd46VefIkoV9YbhZtrtI0TKjRZqfJKbfXSrZiDcejvJmp7xKYDEb0hbKnsjqlu7fRAdGynCr0FZeKPXUmyFnOjk76bqXTpUz8wrZ28YPZ3bJKZ5vitDk4hgkxLgrxxD0o703crNgwuYR/ssHWmcG1brD8DL5sVxqjfj6cPtmGVbmecJ0hCtCjFKGPEZCd5V5qTK8XqOXaq9wLHoM0+4kpeNusZj/e5v1VrpW3xGfXDZxOrYEW9/sRLiXxKzK8MvaZrwveZPlJigXCGLTbt2Rlt4QIDAQAB",
   "permissions": [

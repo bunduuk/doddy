@@ -52,7 +52,7 @@ Doddy installs its helper tools ([yt-dlp](https://github.com/yt-dlp/yt-dlp), [ff
 
 ## Install
 
-1. Download **Doddy-0.2.2.dmg** and **Doddy-extension-0.2.2.zip** from the [latest release](https://github.com/bunduuk/doddy/releases/latest).
+1. Download **Doddy-0.2.3.dmg** and **Doddy-extension-0.2.3.zip** from the [latest release](https://github.com/bunduuk/doddy/releases/latest).
 2. Open the disk image and drag **Doddy** into **Applications**.
 3. Open Doddy. Because it is not notarised by Apple, macOS blocks it the first time: open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/Doddy.app` in Terminal).
 4. Unzip the extension and load it in Chrome as described in [Install the browser extension](#install-the-browser-extension).
