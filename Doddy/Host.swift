@@ -4,6 +4,8 @@ import AppKit
 
 enum Installer {
     static let extensionID = "lmlggkipmfmhpblpcnkiocnhkadljanb"
+    /// Every copy of the extension that may talk to the app: the one loaded from the folder, and the Microsoft Edge Add-ons store version.
+    static let extensionIDs = [extensionID, "pokehcfbighjdiehnfokdbifdehegahe"]
     static let hostName = "io.github.bunduuk.doddy.host"
     static let oldHostNames = ["com.neatmac.host"]   // earlier builds: still answered, so an extension not reloaded keeps working
 
@@ -38,7 +40,7 @@ enum Installer {
             "description": "Doddy download helper",
             "path": Paths.hostScript.path,
             "type": "stdio",
-            "allowed_origins": ["chrome-extension://\(extensionID)/"],
+            "allowed_origins": extensionIDs.map { "chrome-extension://\($0)/" },
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: manifest, options: [.prettyPrinted]) else { return 0 }
 
